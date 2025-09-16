@@ -3,7 +3,6 @@ const path = require('path');
 
 function generateFrames(description) {
   return new Promise((resolve, reject) => {
-    // נתיב מוחלט לסקריפט Python
     const scriptPath = path.join(__dirname, "../colab/generate_frames.py");
     console.log("Running script at:", scriptPath);
 
@@ -15,7 +14,7 @@ function generateFrames(description) {
     process.on("close", code => {
       console.log("Process exited with code:", code);
       if (code === 0) {
-        resolve("colab/frames/"); // תיקיית פריימים
+        resolve("frames/video.mp4"); // נתיב יחסי ל־Express static route
       } else {
         reject("Error generating frames");
       }

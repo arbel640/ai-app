@@ -1,0 +1,52 @@
+from diffusers import StableDiffusionPipeline
+import torch
+import cv2
+import os
+from flask import Flask, request, send_file
+
+app = Flask(__name__)
+
+# תיקייה לFrames
+FRAMES_DIR = "/content/frames"
+os.makedirs(FRAMES_DIR, exist_ok=True)
+
+# יצירת Pipeline של Stable Diffusion
+pipe = StableDiffusionPipeline.from_pretrained(
+    "runwayml/stable-diffusion-v1-5",
+    torch_dtype=torch.float16
+)
+pipe = pipe.to("cuda")  # אם יש GPU ב-Colab
+
+# פונקציה שמקבלת תיאור ומייצרת סרטון
+def generate_video_from_description(description, num_frames=5):
+    # יצירת פריימים
+    frame_paths = []
+    for i in range(num_frames):
+        image = pipe(description).images[0]
+        frame_path = os.path.join(FRAMES_DIR, f"frame_{i}.png")
+        image.save(frame_path)
+        frame_paths.append(frame_path)
+    
+    # יצירת וידאו
+    video_path = os.path.join(FRAMES_DIR, "video.mp4")
+    frame = cv2.imread(frame_paths[0])
+    height, width, layers = frame.shape
+    video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*'mp4v'), 5, (width, height))
+    for frame_path in frame_paths:
+        video.write(cv2.imread(frame_path))
+    video.release()
+    return video_path
+
+# Flask endpoints
+@app.route("/generate", methods=["POST"])
+def generate():
+    data = request.json
+    description = data["description"]
+    video_path = generate_video_from_description(description)
+    return {"video_url": f"https://5755ac46b31d.ngrok-free.app/video"}
+
+@app.route("/video")
+def get_video():
+    return send_file(os.path.join(FRAMES_DIR, "video.mp4"), mimetype="video/mp4")
+
+app.run(host="0.0.0.0", port=5000)

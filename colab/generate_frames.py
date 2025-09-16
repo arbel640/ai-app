@@ -1,16 +1,14 @@
-import sys
+from diffusers import StableDiffusionPipeline
+import torch
 import os
 
-description = sys.argv[1]
-frames_dir = "frames"
+description = "red car racing in sunset"  # זה יגיע מה־argv
+frames_path = "colab/frames/"
+os.makedirs(frames_path, exist_ok=True)
 
-# צור תיקיית פריימים אם לא קיימת
-os.makedirs(frames_dir, exist_ok=True)
+pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5", torch_dtype=torch.float16)
+pipe = pipe.to("cuda")  # אם יש לך GPU, אחרת "cpu"
 
-# לדוגמה – יוצרים 5 תמונות placeholder
 for i in range(5):
-    file_path = os.path.join(frames_dir, f"frame_{i+1}.png")
-    with open(file_path, "w") as f:
-        f.write(f"Frame {i+1} for description: {description}")
-
-print("Frames generated successfully")
+    image = pipe(description).images[0]
+    image.save(os.path.join(frames_path, f"frame_{i}.png"))
