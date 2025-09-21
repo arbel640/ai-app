@@ -17,11 +17,17 @@ function App() {
       socket.on("connect", () => console.log("✅ Connected to backend, id:", socket.id));
       socket.on("connect_error", (err) => console.error("❌ Connection error:", err));
       socket.on("disconnect", (reason) => console.log("❎ Disconnected:", reason));
+
       socket.on("video-ready", (url) => {
         console.log("📩 Video ready:", url);
-        setVideoUrl(url);
         setStatus("הסרטון מוכן!");
+
+        // מחכים שנייה לפני הצגת הסרטון
+        setTimeout(() => {
+          setVideoUrl(url);
+        }, 1000); // 1000ms = 1 שנייה
       });
+
       socket.on("error", (err) => {
         console.error("❌ Error from backend:", err);
         setStatus("אירעה שגיאה ביצירת הסרטון");
@@ -36,6 +42,7 @@ function App() {
     }
     console.log("📤 Sending description to backend:", description);
     setStatus("יוצר סרטון...");
+    setVideoUrl(null); // מוחק סרטון קודם אם קיים
     socket.emit("generate-video", description);
   };
 
@@ -57,7 +64,12 @@ function App() {
       {videoUrl && (
         <div>
           <h3>התוצאה:</h3>
-          <video controls width="400" src={videoUrl}></video>
+ <video
+  key={videoUrl}   // מכריח רינדור מחדש כשהקישור מתעדכן
+  controls
+  width="400"
+  src={videoUrl + "?t=" + Date.now()}  // מוסיף timestamp כדי לעקוף cache
+></video>
         </div>
       )}
     </div>

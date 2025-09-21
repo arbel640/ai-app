@@ -25,7 +25,7 @@ io.on('connection', (socket) => {
 
     try {
       // שולחים POST ל-Colab שמייצר את הוידאו ב-GPU
-      const colabUrl = "https://6e9f04ea3dc8.ngrok-free.app/generate"; // החלף לכתובת ngrok של Colab
+      const colabUrl = "https://94503e26a14c.ngrok-free.app/generate"; // החלף לכתובת ngrok של Colab
 const response = await axios.post(colabUrl, { description }, {
   headers: { "Content-Type": "application/json" }
 });

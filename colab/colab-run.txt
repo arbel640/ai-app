@@ -1,12 +1,12 @@
 from diffusers import StableDiffusionPipeline
 import torch
-import cv2
 import os
 from flask import Flask, request, send_file
+from pyngrok import ngrok
 
 app = Flask(__name__)
 
-# תיקייה לFrames
+# תיקייה ל־Frames
 FRAMES_DIR = "/content/frames"
 os.makedirs(FRAMES_DIR, exist_ok=True)
 
@@ -15,38 +15,44 @@ pipe = StableDiffusionPipeline.from_pretrained(
     "runwayml/stable-diffusion-v1-5",
     torch_dtype=torch.float16
 )
-pipe = pipe.to("cuda")  # אם יש GPU ב-Colab
+pipe = pipe.to("cuda")  # GPU של Colab
 
-# פונקציה שמקבלת תיאור ומייצרת סרטון
-def generate_video_from_description(description, num_frames=5):
-    # יצירת פריימים
+# פונקציה שמייצרת פריימים וסרטון אמיתי עם ffmpeg
+def generate_video_from_description(description, num_frames=5, fps=2):
     frame_paths = []
     for i in range(num_frames):
-        image = pipe(description).images[0]
+        image = pipe(description, guidance_scale=7.5).images[0]
         frame_path = os.path.join(FRAMES_DIR, f"frame_{i}.png")
         image.save(frame_path)
         frame_paths.append(frame_path)
-    
-    # יצירת וידאו
+        print("✅ Saved frame:", frame_path)
+
+    # יצירת וידאו אמיתי עם ffmpeg
     video_path = os.path.join(FRAMES_DIR, "video.mp4")
-    frame = cv2.imread(frame_paths[0])
-    height, width, layers = frame.shape
-    video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*'mp4v'), 5, (width, height))
-    for frame_path in frame_paths:
-        video.write(cv2.imread(frame_path))
-    video.release()
+    ffmpeg_cmd = f"ffmpeg -r {fps} -i {FRAMES_DIR}/frame_%d.png -vcodec libx264 -pix_fmt yuv420p {video_path} -y"
+    os.system(ffmpeg_cmd)
+    print("🎬 Video saved at:", video_path)
+
     return video_path
 
 # Flask endpoints
 @app.route("/generate", methods=["POST"])
 def generate():
     data = request.json
-    description = data["description"]
-    video_path = generate_video_from_description(description)
-    return {"video_url": f"https://5755ac46b31d.ngrok-free.app/video"}
+    description = data.get("description")
+    if not description:
+        return {"error": "No description provided"}, 400
+
+    video_path = generate_video_from_description(description, num_frames=15, fps=2)
+    return {"video_url": f"https://7c4232e5b5b8.ngrok-free.app/video"}  # URL ישיר לסרטון
+    print("Files in frames dir:", os.listdir(FRAMES_DIR))
 
 @app.route("/video")
 def get_video():
     return send_file(os.path.join(FRAMES_DIR, "video.mp4"), mimetype="video/mp4")
+
+# פותחים נגישות חיצונית עם ngrok
+public_url = ngrok.connect(5000)
+print("Public URL:", public_url)
 
 app.run(host="0.0.0.0", port=5000)

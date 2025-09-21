@@ -1,4 +1,8 @@
+!pip install pyngrok
 from pyngrok import ngrok
 
+# פותחים פורט 5000 ל-HTTP
 public_url = ngrok.connect(5000)
 print("Public URL:", public_url)
+
+!ngrok authtoken 32jmDnd4KvPT5mSOv88nJeV9MIu_4Z1VW3rWqcwbLkbVavwb
